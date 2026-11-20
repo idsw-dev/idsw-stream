@@ -4558,11 +4558,12 @@
   width: 100%;
   max-width: 1300px;
   margin-inline: auto;
+  container-type: inline-size;
 }
 @media (min-width: 768px) {
   .stream-video {
     /* Fit a 16:9 player below the header and tabs on shorter viewports. */
-    max-width: min(1300px, max(720px, calc(177.78svh - 26.67rem)));
+    max-width: min(1300px, max(720px, calc(177.78svh - 23.11rem)));
   }
 }
 .stream-tabs {
@@ -4653,8 +4654,9 @@
 .auth-overlay {
   display: grid;
   place-items: center;
-  min-height: 420px;
-  aspect-ratio: 16 / 9;
+  width: 100%;
+  min-width: 0;
+  min-height: max(420px, 56.25cqw);
   padding: 2rem 1rem;
   border: 1px solid #ffffff33;
   border-radius: 0.75rem;
@@ -4700,7 +4702,6 @@
 .auth-card .form-error { margin-top: 0.5rem; color: #ffc7c7; font-size: 0.875rem; }
 .auth-card .email-address { color: #fff; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
-  .auth-overlay { min-height: 420px; }
   .auth-card .desktop-break { display: none; }
 }
 .skip-link {

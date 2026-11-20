@@ -67,9 +67,36 @@ test("player area adapts to available screen height", async ({ page }) => {
   // 125% desktop scaling leaves approximately 80% of the CSS viewport.
   await page.setViewportSize({ width: 1536, height: 864 });
   const scaled = await measure();
-  expect(scaled.width).toBeLessThan(large.width - 150);
-  expect(scaled.width).toBeGreaterThan(1000);
+  expect(scaled.width).toBeLessThan(1200);
+  expect(scaled.width).toBeGreaterThan(1150);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("access code form stays inside the player frame on compact screens", async ({ page }) => {
+  await page.route("**/api/auth/request-code", (route) => route.fulfill({ status: 200, contentType: "application/json", body: '{"success":true}' }));
+  await page.goto("/");
+  await page.getByRole("button", { name: /Enter email/ }).click();
+  await page.getByLabel("Email address").fill("viewer@example.com");
+  await page.getByRole("button", { name: /Send access code/ }).click();
+  await expect(page.getByRole("heading", { name: "Check your email." })).toBeVisible();
+
+  for (const viewport of [{ width: 1536, height: 864 }, { width: 1093, height: 614 }, { width: 412, height: 839 }]) {
+    await page.setViewportSize(viewport);
+    const bounds = await page.evaluate(() => {
+      const overlay = document.querySelector(".auth-overlay")!.getBoundingClientRect();
+      const card = document.querySelector(".auth-card")!.getBoundingClientRect();
+      return {
+        cardTop: card.top,
+        cardBottom: card.bottom,
+        overlayTop: overlay.top,
+        overlayBottom: overlay.bottom,
+        overflowWidth: document.documentElement.scrollWidth - innerWidth,
+      };
+    });
+    expect(bounds.cardTop).toBeGreaterThan(bounds.overlayTop);
+    expect(bounds.cardBottom).toBeLessThan(bounds.overlayBottom);
+    expect(bounds.overflowWidth).toBeLessThanOrEqual(0);
+  }
 });
 
 test("a verified code unlocks only the selected day's player", async ({ page }) => {
