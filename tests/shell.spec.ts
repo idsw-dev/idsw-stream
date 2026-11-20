@@ -19,10 +19,19 @@ test("DEFAULT_DAY=2 opens Day 2 when both days are visible", async ({ page }) =>
 test("conference shell stays intact while recordings remain locked", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);
-  await expect(page).toHaveTitle("IDSW Stream");
+  await expect(page).toHaveTitle("IDSW 2026 | Indonesia Software Developer Conference, Jakarta");
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /IDSW 2026 livestream and recordings/);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /^https:\/\/stream\.idsw\.dev\/?$/);
+  await expect(page.locator('meta[property="og:title"]')).toHaveAttribute("content", "IDSW 2026 | Indonesia Software Developer Conference, Jakarta");
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", "https://stream.idsw.dev/assets/og.jpg");
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute("content", "summary_large_image");
   await expect(page.getByAltText("IDSW 2026")).toHaveCount(2);
   await expect(page.locator("header a[href='https://idsw.dev/#schedule']")).toHaveCount(2);
   await expect(page.locator("footer a[href='https://idsw.dev/#schedule']")).toHaveCount(1);
+  const currentNavigation = ["Speakers", "Schedule", "Sponsors", "FAQ", "Guideline", "Stream"];
+  await expect(page.locator("header nav ul").first().locator("li")).toHaveText(currentNavigation);
+  await expect(page.locator("header nav ul").last().locator("li")).toHaveText(currentNavigation);
+  await expect(page.locator(".footer-navigation a")).toHaveText(currentNavigation);
   await expect(page.locator("footer a[title='Perkumpulan Pengrajin Kode Indonesia']")).toHaveAttribute("href", "https://perkodi.org");
   await expect(page.locator("footer")).toContainText("21–22 Nov 2026");
   await expect(page.locator("footer")).toContainText("08.00–18.15 WIB");
@@ -37,6 +46,29 @@ test("conference shell stays intact while recordings remain locked", async ({ pa
   expect(html).not.toContain("PRIVATE KEY");
   expect(html).not.toMatch(/eyJhbGciOiJSUzI1NiJ9/);
   expect(html).not.toContain("test-day-1");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("player area adapts to available screen height", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/");
+  await expect(page.locator(".auth-overlay")).toBeVisible();
+  const measure = () => page.evaluate(() => {
+    const nav = document.querySelector(".site-nav")!.getBoundingClientRect();
+    const tabs = document.querySelector(".stream-tabs")!.getBoundingClientRect();
+    const video = document.querySelector(".stream-video")!.getBoundingClientRect();
+    return { width: video.width, topGap: tabs.top - nav.bottom };
+  });
+  const large = await measure();
+  expect(large.width).toBeGreaterThanOrEqual(1299);
+  expect(large.topGap).toBeGreaterThanOrEqual(0);
+  expect(large.topGap).toBeLessThanOrEqual(24);
+
+  // 125% desktop scaling leaves approximately 80% of the CSS viewport.
+  await page.setViewportSize({ width: 1536, height: 864 });
+  const scaled = await measure();
+  expect(scaled.width).toBeLessThan(large.width - 150);
+  expect(scaled.width).toBeGreaterThan(1000);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

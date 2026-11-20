@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { conferenceNavigation } from "./conferenceNavigation";
 
 export default function SiteFooter() {
   return (
@@ -178,62 +179,17 @@ export default function SiteFooter() {
             </ul>
           </div>
           <div className="footer-navigation mt-8 border-t border-white/10 pt-6 text-xs text-white/60 sm:text-sm">
-            <a
-              href="https://idsw.dev/"
-              className="transition-colors hover:text-white"
-            >
-              Home{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#keynote-speakers"
-              className="transition-colors hover:text-white"
-            >
-              Speakers{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#schedule"
-              className="transition-colors hover:text-white"
-            >
-              Schedule{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#cfp"
-              className="transition-colors hover:text-white"
-            >
-              CFP{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#sponsors"
-              className="transition-colors hover:text-white"
-            >
-              Sponsors{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#previous-events"
-              className="transition-colors hover:text-white"
-            >
-              Previous Events{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#faq"
-              className="transition-colors hover:text-white"
-            >
-              FAQ{" "}
-            </a>
-            <a
-              href="https://idsw.dev/#contact"
-              className="transition-colors hover:text-white"
-            >
-              Contact{" "}
-            </a>
-            <a
-              href="https://tiptip.id/event/68c1a321-c6f7-4fe8-8ac0-38b48136ff33"
-              className="transition-colors hover:text-white"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Tickets
-            </a>
+            {conferenceNavigation.map((item) => (
+              <a
+                key={item.label}
+                href={item.href}
+                className="transition-colors hover:text-white"
+                target={"external" in item ? "_blank" : undefined}
+                rel={"external" in item ? "noopener noreferrer" : undefined}
+              >
+                {item.label}
+              </a>
+            ))}
           </div>
           <div className="footer-legal mt-6 flex flex-wrap items-center border-t border-white/10 pt-6 text-xs text-white/50">
             <a
