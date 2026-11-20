@@ -72,6 +72,26 @@ test("player area adapts to available screen height", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test("portrait stream hands off to the footer after its content", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await expect(page.locator(".auth-overlay")).toBeVisible();
+  const stage = page.locator(".hero-stage");
+  const desktopHeight = await stage.evaluate((element) => element.getBoundingClientRect().height);
+  expect(desktopHeight).toBeGreaterThanOrEqual(900);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const bounds = await page.evaluate(() => {
+    const hero = document.querySelector(".hero-stage")!.getBoundingClientRect();
+    const footer = document.querySelector("footer")!.getBoundingClientRect();
+    const player = document.querySelector(".auth-overlay")!.getBoundingClientRect();
+    return { heroBottom: hero.bottom, footerTop: footer.top, playerBottom: player.bottom, viewportHeight: innerHeight };
+  });
+  expect(bounds.heroBottom).toBeLessThan(bounds.viewportHeight);
+  expect(bounds.footerTop).toBe(bounds.heroBottom);
+  expect(bounds.playerBottom).toBeLessThan(bounds.footerTop);
+});
+
 test("access code form stays inside the player frame on compact screens", async ({ page }) => {
   await page.route("**/api/auth/request-code", (route) => route.fulfill({ status: 200, contentType: "application/json", body: '{"success":true}' }));
   await page.goto("/");
