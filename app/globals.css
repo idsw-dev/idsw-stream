@@ -4703,6 +4703,24 @@
 .auth-card .email-address { color: #fff; overflow-wrap: anywhere; }
 @media (max-width: 600px) {
   .auth-card .desktop-break { display: none; }
+  .auth-overlay[data-step="email"],
+  .auth-overlay[data-step="otp"] {
+    min-height: 0;
+    max-height: calc(100svh - var(--site-header-height, 4.5rem) - 6.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem;
+  }
+  .auth-overlay[data-step="email"] .auth-card,
+  .auth-overlay[data-step="otp"] .auth-card { margin-block: auto; }
+  .auth-overlay[data-step="email"] .lock-icon,
+  .auth-overlay[data-step="otp"] .lock-icon { display: none; }
+  .auth-card .eyebrow { margin-bottom: 0.5rem; }
+  .auth-card h2 { margin-bottom: 0.5rem; }
+  .auth-card form { gap: 0.5rem; margin-top: 1rem; }
+  .auth-card .text-button { margin-top: 0.75rem; }
+  .auth-card .quiet-note { margin-top: 0.75rem; }
+  .auth-card .form-actions { flex-wrap: wrap; gap: 0.5rem; }
 }
 .skip-link {
   z-index: 60;

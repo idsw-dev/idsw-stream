@@ -99,6 +99,43 @@ test("access code form stays inside the player frame on compact screens", async 
   }
 });
 
+test("mobile portrait email and code forms stay within the screen", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.route("**/api/auth/request-code", (route) => route.fulfill({ status: 200, contentType: "application/json", body: '{"success":true}' }));
+  await page.route("**/api/auth/verify-code", (route) => route.fulfill({ status: 400, contentType: "application/json", body: '{"error":"Incorrect code"}' }));
+  await page.goto("/");
+  await page.getByRole("button", { name: /Enter email/ }).click();
+
+  async function expectFormWithinScreen() {
+    const bounds = await page.evaluate(() => {
+      const frame = document.querySelector(".auth-overlay")!.getBoundingClientRect();
+      return { top: frame.top, bottom: frame.bottom, viewportHeight: innerHeight, overflowWidth: document.documentElement.scrollWidth - innerWidth };
+    });
+    expect(bounds.top).toBeGreaterThanOrEqual(0);
+    expect(bounds.bottom).toBeLessThanOrEqual(bounds.viewportHeight);
+    expect(bounds.overflowWidth).toBeLessThanOrEqual(0);
+  }
+
+  await expectFormWithinScreen();
+  await page.getByLabel("Email address").fill("viewer@example.com");
+  await page.getByRole("button", { name: /Send access code/ }).click();
+  await expect(page.getByRole("heading", { name: "Check your email." })).toBeVisible();
+  await expectFormWithinScreen();
+
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.getByLabel("6-digit access code").fill("123456");
+  await page.getByRole("button", { name: /Unlock stream/ }).click();
+  await expect(page.locator("#auth-error")).toHaveText("Incorrect code");
+  await expectFormWithinScreen();
+  const frame = page.locator(".auth-overlay");
+  await frame.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  const frameBox = await frame.boundingBox();
+  const helpBox = await page.getByText("No code? Check spam, wait a minute, then try again.").boundingBox();
+  expect(frameBox).not.toBeNull();
+  expect(helpBox).not.toBeNull();
+  expect(helpBox!.y + helpBox!.height).toBeLessThan(frameBox!.y + frameBox!.height);
+});
+
 test("a verified code unlocks only the selected day's player", async ({ page }) => {
   const requestedDays: number[] = [];
   await page.route("**/api/auth/request-code", (route) => route.fulfill({ status: 200, contentType: "application/json", body: '{"success":true}' }));

@@ -93,7 +93,7 @@ export default function AuthOverlay({
     }
   }
   return (
-    <section className="auth-overlay" aria-labelledby="access-title">
+    <section className="auth-overlay" data-step={step} aria-labelledby="access-title">
       <div className="auth-card">
         <span className="lock-icon">
           <LockIcon />
