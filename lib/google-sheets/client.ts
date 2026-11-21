@@ -46,27 +46,38 @@ async function googleToken() {
   return accessToken.token;
 }
 
+export function allowlistCacheKey() {
+  return (
+    "allowlist:" +
+    createHash("sha256")
+      .update(`${required("GOOGLE_SHEET_ID")}:${required("GOOGLE_SHEET_RANGE")}`)
+      .digest("hex")
+  );
+}
+
+export async function fetchSheetValues(): Promise<unknown[][]> {
+  const sheetId = required("GOOGLE_SHEET_ID");
+  const range = required("GOOGLE_SHEET_RANGE");
+  const token = await googleToken();
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}`,
+    {
+      cache: "no-store",
+      signal: AbortSignal.timeout(6_000),
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  if (!response.ok) throw new Error("Allowlist unavailable");
+  const data = (await response.json()) as { values?: unknown[][] };
+  return data.values ?? [];
+}
+
 export function sheetsLookup(store: StateStore) {
   return async (email: string): Promise<Member | null> => {
-    const sheetId = required("GOOGLE_SHEET_ID");
-    const range = required("GOOGLE_SHEET_RANGE");
-    const key =
-      "allowlist:" +
-      createHash("sha256").update(`${sheetId}:${range}`).digest("hex");
+    const key = allowlistCacheKey();
     const cacheSeconds = integer("GOOGLE_SHEET_CACHE_SECONDS", 15, 0, 60);
     async function fetchRows() {
-      const token = await googleToken();
-      const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}`,
-        {
-          cache: "no-store",
-          signal: AbortSignal.timeout(6_000),
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      if (!response.ok) throw new Error("Allowlist unavailable");
-      const data = (await response.json()) as { values?: unknown[][] };
-      return parseAllowlist(data.values ?? []);
+      return parseAllowlist(await fetchSheetValues());
     }
     if (cacheSeconds === 0) return (await fetchRows())[email] ?? null;
     const owner = randomUUID();

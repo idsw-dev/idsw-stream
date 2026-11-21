@@ -12,6 +12,11 @@ import { AccessError, INVALID_CODE, SESSION_EXPIRED } from "./errors";
 import { normalizeEmail, validCode, validDay } from "./validation";
 
 export type Member = { email: string; name: string };
+export class DeliveryError extends Error {
+  constructor(public stage: "sheet" | "resend") {
+    super("Code delivery unavailable");
+  }
+}
 export type Playback = {
   playbackId: string;
   tokens: { playback: string; thumbnail: string; storyboard: string };
@@ -88,8 +93,13 @@ export class AuthService {
   // Runs with Next.js after(), so provider latency and errors cannot enumerate emails.
   async deliverCode(email: string) {
     const { lookup, store, config, sendCode } = this.deps;
-    const member = await lookup(email);
-    if (!member) return;
+    let member: Member | null;
+    try {
+      member = await lookup(email);
+    } catch {
+      throw new DeliveryError("sheet");
+    }
+    if (!member) return "not_allowed" as const;
     const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
     const hash = this.digest("otp", `${email}:${code}`);
     const user = this.digest("email", email);
@@ -101,9 +111,14 @@ export class AuthService {
     try {
       await sendCode(member, code, randomBytes(16).toString("hex"));
     } catch {
-      await store.deleteOTP(user, hash);
-      throw new Error("Code delivery unavailable");
+      try {
+        await store.deleteOTP(user, hash);
+      } catch {
+        console.error(JSON.stringify({ event: "failed_code_cleanup" }));
+      }
+      throw new DeliveryError("resend");
     }
+    return "accepted" as const;
   }
 
   async verifyCode(value: unknown, code: unknown, ip: string) {
