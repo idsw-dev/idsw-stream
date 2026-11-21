@@ -38,7 +38,7 @@ Open <http://localhost:3000>. Fill `.env.local` with the values below before req
 
 The Sheet must have `email`, `name`, and `enabled` or `status` headers. Values `TRUE`, `enabled`, `active`, `1`, and `yes` grant access; conflicting duplicate rows deny access. The service account needs the Sheets read-only scope and Viewer access to the spreadsheet. Keep all credentials server-only and out of Git. Do not prefix them with `NEXT_PUBLIC_`.
 
-The app limits code requests and verification attempts, expires codes after five minutes, enforces a one-minute resend cooldown, and permits one active session per email. Sessions use an HTTP-only cookie and expire after 24 hours of inactivity. A removed attendee cannot receive new playback tokens after the short Sheet cache expires. Mux tokens are renewed while the recording is open so long recordings can continue playing. With `HIDE_DAY_2=true`, Day 2 is removed from the page and its token endpoint returns 404, even if `DEFAULT_DAY=2`. Set `HIDE_DAY_2=false` and `DEFAULT_DAY=2` to open Day 2 first once it is available.
+The app limits code requests and verification attempts, expires codes after five minutes, enforces a one-minute resend cooldown, and permits one active session per email. Sessions use an HTTP-only cookie and expire after 24 hours of inactivity. A removed attendee cannot receive new playback tokens after the short Sheet cache expires. Mux playback tokens last 24 hours and are renewed near expiry. Already issued tokens remain valid until their expiry. With `HIDE_DAY_2=true`, Day 2 is removed from the page and its token endpoint returns 404, even if `DEFAULT_DAY=2`. Set `HIDE_DAY_2=false` and `DEFAULT_DAY=2` to open Day 2 first once it is available.
 
 ## Development
 

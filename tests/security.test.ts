@@ -23,7 +23,7 @@ test("accepts PEM and base64 PKCS#8 service-account key formats", () => {
   assert.equal(createPrivateKey(pem(encodedPem)).asymmetricKeyType, "rsa");
 });
 
-test("Mux signs distinct restricted RS256 tokens with correct audience, ID and short expiry", async () => {
+test("Mux signs distinct restricted RS256 tokens with a full-day lifetime", async () => {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
   });
@@ -35,8 +35,9 @@ test("Mux signs distinct restricted RS256 tokens with correct audience, ID and s
     MUX_PLAYBACK_RESTRICTION_ID: "test-restriction",
     DAY_1_ID: "test-day-1",
     DAY_2_ID: "test-day-2",
-    MUX_TOKEN_EXPIRATION_SECONDS: "600",
   });
+  // An old deployment variable must not shorten a full-day stream token.
+  process.env.MUX_TOKEN_EXPIRATION_SECONDS = "600";
   for (const day of [1, 2] as const) {
     const result = await signPlayback(day);
     for (const [kind, audience] of [
@@ -52,20 +53,18 @@ test("Mux signs distinct restricted RS256 tokens with correct audience, ID and s
       assert.equal(payload.sub, `test-day-${day}`);
       assert.equal(protectedHeader.kid, "test-key");
       assert.equal(payload.playback_restriction_id, "test-restriction");
-      assert.ok(payload.exp! - Math.floor(Date.now() / 1000) <= 600);
-      assert.ok(payload.exp! > Date.now() / 1000);
+      assert.ok(payload.exp! - Math.floor(Date.now() / 1000) <= 86_400);
+      assert.ok(payload.exp! - Math.floor(Date.now() / 1000) > 86_390);
       assert.equal(result.expiresAt, payload.exp! * 1000);
     }
   }
   delete process.env.MUX_PLAYBACK_RESTRICTION_ID;
   await assert.rejects(signPlayback(1), /Missing configuration/);
+  delete process.env.MUX_TOKEN_EXPIRATION_SECONDS;
 });
-test("configuration rejects weak secrets and excessive playback lifetimes", async () => {
+test("configuration rejects weak session secrets", () => {
   process.env.SESSION_SECRET = "short";
   assert.throws(authConfig);
-  process.env.MUX_PLAYBACK_RESTRICTION_ID = "test";
-  process.env.MUX_TOKEN_EXPIRATION_SECONDS = "999999";
-  await assert.rejects(signPlayback(1));
 });
 test("cookies are HttpOnly, SameSite=Lax, path / with a 24-hour lifetime", () => {
   const header = setSessionCookie(

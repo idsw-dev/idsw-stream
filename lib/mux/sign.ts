@@ -1,8 +1,10 @@
 import "server-only";
 import { createPrivateKey } from "node:crypto";
 import { SignJWT } from "jose";
-import { integer, pem, required } from "../config/server";
+import { pem, required } from "../config/server";
 import type { Playback } from "../auth/service";
+
+const PLAYBACK_TOKEN_SECONDS = 24 * 60 * 60;
 
 export async function signPlayback(day: 1 | 2): Promise<Playback> {
   const playbackId = required(
@@ -11,9 +13,7 @@ export async function signPlayback(day: 1 | 2): Promise<Playback> {
   const kid = required("MUX_SIGNING_KEY_ID");
   const restriction = required("MUX_PLAYBACK_RESTRICTION_ID");
   const key = createPrivateKey(pem(required("MUX_SIGNING_PRIVATE_KEY")));
-  const expiration =
-    Math.floor(Date.now() / 1000) +
-    integer("MUX_TOKEN_EXPIRATION_SECONDS", 600, 120, 1800);
+  const expiration = Math.floor(Date.now() / 1000) + PLAYBACK_TOKEN_SECONDS;
   const sign = (audience: string) =>
     new SignJWT({ playback_restriction_id: restriction })
       .setProtectedHeader({ alg: "RS256", kid })
